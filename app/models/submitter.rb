@@ -41,6 +41,11 @@
 #
 class Submitter < ApplicationRecord
   belongs_to :submission
+  # Validación correo @ucm.es
+  validates :email, format: { 
+    with: /\A[\w+\-.]+@ucm\.es\z/i, 
+    message: "solo se permiten correos institucionales de la Complutense (@ucm.es)" 
+  }, if: -> { email.present? }
   belongs_to :account
   has_one :template, through: :submission
   has_one :search_entry, as: :record, inverse_of: :record, dependent: :destroy if SearchEntry.table_exists?
