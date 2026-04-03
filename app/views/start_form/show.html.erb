@@ -46,7 +46,7 @@
         <% if link_form_fields.include?('email') %>
           <div dir="auto" class="form-control !mt-0">
             <%= f.label :email, t('email'), class: 'label' %>
-            <%= f.email_field :email, value: current_user&.email || params[:email] || @submitter.email, required: true, class: 'base-input', placeholder: t(multiple_fields ? 'provide_your_email' : 'provide_your_email_to_start') %>
+            <%= f.email_field :email, value: current_user&.email || params[:email] || @submitter.email, required: true, class: 'base-input', pattern: ".*@ucm\\.es", title: "Debes usar tu correo institucional @ucm.es", placeholder: "tu-usuario@ucm.es" %>
           </div>
         <% end %>
         <% if link_form_fields.include?('phone') %>
