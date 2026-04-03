@@ -1,5 +1,4 @@
-# 📝 DocuSeal - UCM Edition (Derecho x La Pública)
-
+# 📝 DocuSeal - UCM Edition (UCMXLAPUBLICA)
 A highly customized, self-hosted version of **DocuSeal** designed for institutional voting of the **UCMXLAPUBLICA** platform association at the Complutense University of Madrid.
 
 ## Key Features & Enhancements
