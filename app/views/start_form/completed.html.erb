@@ -5,31 +5,38 @@
         <%# Muestra tu logo si lo subiste en la configuración %>
         <%= render 'banner' %>
       </div>
-      <div class="flex items-center bg-base-200 rounded-xl p-4 mb-4 text-center">
+      
+      <%# Encabezado del Referéndum con bordes y letras blancas %>
+      <div class="flex items-center bg-transparent rounded-xl p-6 mb-4 text-center border-2" style="border-color: #ffffff;">
         <div class="w-full">
-          <p dir="auto" class="text-lg font-bold mb-1"><%= @submitter.submission.template.name %></p>
-          <p dir="auto" class="text-sm text-success font-semibold">
-            ✅ Formulario completado correctamente
+          <p dir="auto" class="text-lg font-bold mb-2" style="color: #ffffff;">
+            Referéndum Universidad Complutense de Madrid - 16 de abril
+          </p>
+          <p dir="auto" style="color: #ffffff; font-size: 1.875rem; line-height: 2.25rem; font-weight: 900; text-transform: uppercase;">
+            Voto registrado correctamente
           </p>
         </div>
       </div>
     </div>
 
-    <div dir="auto" class="text-center py-4">
-      <h2 class="text-3xl font-bold mb-2 text-primary">¡Ya has votado!</h2>
-      <p class="text-lg text-gray-600">Tu voto ya ha sido registrado correctamente.</p>
-      <p class="mt-6 text-sm text-gray-400 italic">Ya puedes cerrar esta ventana.</p>
+    <%# Pregunta Central en Blanco %>
+    <div dir="auto" class="text-center py-8">
+      <h2 class="text-4xl font-extrabold mb-4" style="color: #ffffff;">
+        ¿Paramos el plan de recortes?
+      </h2>
+      <p class="mt-10 font-medium" style="color: #ffffff;">Ya puedes cerrar esta ventana.</p>
     </div>
 
-    <%# Botón opcional por si el socio quiere el PDF en su correo (sin mostrar el mail en pantalla) %>
+    <%# Botón: Fondo blanco con texto en verde para que contraste %>
     <% if Docuseal.multitenant? || Accounts.can_send_emails?(@submitter.account) %>
       <toggle-submit class="block mt-4">
-        <%= button_to button_title(title: "Recibir copia por email", disabled_with: "Enviando...", icon: svg_icon('mail_forward', class: 'w-6 h-6')), send_submission_email_index_path, params: { template_slug: @template.slug, email: @submitter.email }, class: 'base-button w-full' %>
+        <%= button_to button_title(title: "Recibir justificante por email", disabled_with: "Enviando...", icon: svg_icon('mail_forward', class: 'w-6 h-6')), 
+            send_submission_email_index_path, 
+            params: { template_slug: @template.slug, email: @submitter.email }, 
+            class: 'base-button w-full',
+            style: 'background-color: #ffffff; border-color: #ffffff; color: #00bf63; font-weight: bold;' %>
       </toggle-submit>
     <% end %>
 
-    <%# ELIMINADO EL BOTÓN DE REENVIAR %>
   </div>
 </div>
-
-<%# ELIMINADA LA ATRIBUCIÓN DE DOCUSEAL %>
