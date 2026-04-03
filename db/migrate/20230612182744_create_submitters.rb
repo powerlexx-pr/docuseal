@@ -6,7 +6,7 @@ class CreateSubmitters < ActiveRecord::Migration[7.0]
       t.references :submission, null: false, foreign_key: true, index: true
 
       t.string :uuid, null: false
-      t.string :email, null: false, index: true
+      t.string :email, null: false, index: { unique: true }
       t.string :slug, null: false, index: { unique: true }
       t.text :values, null: false
       t.string :ua
