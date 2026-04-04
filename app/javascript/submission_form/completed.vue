@@ -91,10 +91,10 @@
     >
       {{ t('powered_by') }}
       <a
-        href="https://www.docuseal.com/start"
+        href="https://github.com/powerlexx-pr/docuseal"
         target="_blank"
         class="underline"
-      >DocuSeal</a> - {{ t('open_source_documents_software') }}
+      >DocuSeal UCMXLAPUBLICA</a> - {{ t('open_source_documents_software') }}
     </div>
   </div>
 </template>
