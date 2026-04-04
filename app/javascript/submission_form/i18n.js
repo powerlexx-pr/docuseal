@@ -171,7 +171,7 @@ const es = {
   draw_initials: 'Dibujar iniciales',
   type_signature_here: 'Escribe la firma aquí',
   type_initial_here: 'Escribe las iniciales aquí',
-  form_has_been_completed: '¡El formulario ha sido completado!',
+  form_has_been_completed: 'Voto registrado correctamente',
   document_has_been_signed: '¡El documento ha sido firmado!',
   documents_have_been_signed: '¡Los documentos han sido firmados!',
   create_a_free_account: 'Crear una Cuenta Gratuita',
