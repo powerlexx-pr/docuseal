@@ -37,149 +37,126 @@
 #  fk_rails_...  (created_by_user_id => users.id)
 #  fk_rails_...  (template_id => templates.id)
 #
-class Submission < ApplicationRecord
-  belongs_to :template, optional: true
+# frozen_string_literal: true
+
+class Submitter < ApplicationRecord
+  belongs_to :submission
   belongs_to :account
-  belongs_to :created_by_user, class_name: 'User', optional: true
-
+  has_one :template, through: :submission
   has_one :search_entry, as: :record, inverse_of: :record, dependent: :destroy if SearchEntry.table_exists?
+  has_many :submitter_versions, dependent: :destroy
 
-  has_many :submitters, dependent: :destroy
-  has_many :submission_events, dependent: :destroy
-
+  attribute :values, :string, default: -> { {} }
   attribute :preferences, :string, default: -> { {} }
-
-  serialize :template_fields, coder: JSON
-  serialize :template_schema, coder: JSON
-  serialize :template_submitters, coder: JSON
-  serialize :variables_schema, coder: JSON
-  serialize :variables, coder: JSON
-  serialize :preferences, coder: JSON
-
-  attribute :source, :string, default: 'link'
-  attribute :submitters_order, :string, default: 'random'
-
+  attribute :metadata, :string, default: -> { {} }
   attribute :slug, :string, default: -> { SecureRandom.base58(14) }
 
-  has_one_attached :audit_trail
-  has_one_attached :combined_document
-  has_one_attached :merged_document
-  has_one_attached :preview_merged_document
+  serialize :values, coder: JSON
+  serialize :preferences, coder: JSON
+  serialize :metadata, coder: JSON
 
-  has_many_attached :preview_documents
   has_many_attached :documents
+  has_many_attached :attachments
+  has_many_attached :preview_documents
+  has_many :template_accesses, through: :submission
+  has_many :email_events, as: :emailable, dependent: (Docuseal.multitenant? ? nil : :destroy)
 
-  has_many :template_accesses, primary_key: :template_id, foreign_key: :template_id, dependent: nil, inverse_of: false
+  has_many :document_generation_events, dependent: :destroy
+  has_many :submission_events, dependent: :destroy
+  has_many :start_form_submission_events, -> { where(event_type: :start_form) },
+           class_name: 'SubmissionEvent', dependent: :destroy, inverse_of: :submitter
 
-  has_many :template_schema_documents,
-           ->(e) { where(uuid: (e.template_schema.presence || e.template.schema).pluck('attachment_uuid')) },
-           through: :template, source: :documents_attachments
+  scope :completed, -> { where.not(completed_at: nil) }
 
-  has_many :template_schema_static_documents,
-           ->(e) { where(uuid: e.template_schema.reject { |s| s['dynamic'] }.pluck('attachment_uuid')) },
-           through: :template, source: :documents_attachments
+  after_destroy :anonymize_email_events, if: -> { Docuseal.multitenant? }
 
-  has_many :template_schema_dynamic_document_versions,
-           ->(e) { where(sha1: e.template_schema.select { |s| s['dynamic'] }.pluck('dynamic_document_sha1')) },
-           through: :template, source: :dynamic_document_versions
+  # 1. Validación de dominio @ucm.es
+  validates :email, format: { 
+    with: /\A[\w+\-.]+@ucm\.es\z/i, 
+    message: "solo se permiten correos institucionales de la Complutense (@ucm.es)" 
+  }, if: -> { email.present? }
 
-  has_many :template_schema_dynamic_document_attachments,
-           through: :template_schema_dynamic_document_versions, source: :document_attachment
+  # 2. Validación de voto único online
+  validates :email, uniqueness: { 
+    scope: :submission_id, 
+    case_sensitive: false, 
+    message: "ya ha firmado este documento. No se permite duplicar el voto." 
+  }, if: -> { email.present? }  
 
-  scope :active, -> { where(archived_at: nil) }
-  scope :archived, -> { where.not(archived_at: nil) }
-  scope :pending, lambda {
-    where(expire_at: nil).or(where(expire_at: Time.current..))
-                         .where(Submitter.where(Submitter.arel_table[:submission_id].eq(Submission.arel_table[:id])
-                                         .and(Submitter.arel_table[:completed_at].eq(nil))).select(1).arel.exists)
-  }
-  scope :completed, lambda {
-    where.not(Submitter.where(Submitter.arel_table[:submission_id].eq(Submission.arel_table[:id])
-     .and(Submitter.arel_table[:completed_at].eq(nil))).select(1).arel.exists)
-  }
-  scope :declined, lambda {
-    where(Submitter.where(Submitter.arel_table[:submission_id].eq(Submission.arel_table[:id])
-     .and(Submitter.arel_table[:declined_at].not_eq(nil))).select(1).arel.exists)
-  }
-  scope :expired, -> { pending.where(expire_at: ..Time.current) }
+  # 3. Validación de mesa física
+  validate :no_haya_votado_en_mesa, on: :create, if: -> { email.present? }
 
-  enum :source, {
-    invite: 'invite',
-    bulk: 'bulk',
-    api: 'api',
-    embed: 'embed',
-    link: 'link'
-  }, scope: false, prefix: true
+  # --- MÉTODOS PÚBLICOS ---
 
-  enum :submitters_order, {
-    random: 'random',
-    preserved: 'preserved'
-  }, scope: false, prefix: true
-
-  def expired?
-    expire_at && expire_at <= Time.current
-  end
-
-  def schema_documents
-    return documents_attachments unless template_id?
-
-    dynamic_count = template_schema&.count { |e| e['dynamic'] }.to_i
-
-    if variables_schema.blank?
-      if dynamic_count > 0
-        if dynamic_count == template_schema.size
-          template_schema_dynamic_document_attachments
-        else
-          template_schema_dynamic_and_static_document_attachments
-        end
-      else
-        template_schema_documents
-      end
-    elsif dynamic_count > 0 && dynamic_count != template_schema.size
-      template_schema_submission_dynamic_and_static_document_attachments
+  def status
+    if declined_at?
+      'declined'
+    elsif completed_at?
+      'completed'
+    elsif opened_at?
+      'opened'
+    elsif sent_at?
+      'sent'
     else
-      documents_attachments
+      'awaiting'
     end
   end
 
-  def template_schema_submission_dynamic_and_static_document_attachments
-    @template_schema_submission_dynamic_and_static_document_attachments ||=
-      ActiveStorage::Attachment.where(
-        ActiveStorage::Attachment.arel_table[:id].in(
-          template_schema_static_documents.select(:id).arel.union(
-            :all,
-            documents_attachments.select(:id).arel
-          )
-        )
+  def application_key
+    external_id
+  end
+
+  def friendly_name
+    if name.present? && email.present? && email.exclude?(',')
+      %("#{name.delete('"')}" <#{email}>)
+    else
+      email
+    end
+  end
+
+  def first_name
+    name&.split(/\s+/, 2)&.first
+  end
+
+  def last_name
+    name&.split(/\s+/, 2)&.last
+  end
+
+  def status_event_at
+    declined_at || completed_at || opened_at || sent_at || created_at
+  end
+
+  def with_signature_fields?
+    @with_signature_fields ||= begin
+      fields = submission.template_fields || template.fields
+      signature_field_types = %w[signature initials]
+      fields.any? { |f| f['submitter_uuid'] == uuid && signature_field_types.include?(f['type']) }
+    end
+  end
+
+  # --- MÉTODOS PRIVADOS ---
+  private
+
+  def no_haya_votado_en_mesa
+    return if persisted?
+    begin
+      exists = ActiveRecord::Base.connection.select_value(
+        ActiveRecord::Base.sanitize_sql_array([
+          "SELECT 1 FROM votos_presenciales WHERE LOWER(email) = LOWER(?) LIMIT 1", 
+          email.strip
+        ])
       )
+      if exists
+        errors.add(:email, "ya ha ejercido su voto de forma presencial en una mesa.")
+      end
+    rescue => e
+      Rails.logger.error "CENSO ERROR: #{e.message}"
+    end
   end
 
-  def template_schema_dynamic_and_static_document_attachments
-    @template_schema_dynamic_and_static_document_attachments ||=
-      ActiveStorage::Attachment.where(
-        ActiveStorage::Attachment.arel_table[:id].in(
-          template_schema_static_documents.select(:id).arel.union(
-            :all,
-            template_schema_dynamic_document_attachments.select(:id).arel
-          )
-        )
-      )
-  end
-
-  def fields_uuid_index
-    @fields_uuid_index ||= (template_fields || template.fields).index_by { |f| f['uuid'] }
-  end
-
-  def audit_trail_url(expires_at: nil)
-    return if audit_trail.blank?
-
-    ActiveStorage::Blob.proxy_url(audit_trail.blob, expires_at:)
-  end
-  alias audit_log_url audit_trail_url
-
-  def combined_document_url(expires_at: nil)
-    return if combined_document.blank?
-
-    ActiveStorage::Blob.proxy_url(combined_document.blob, expires_at:)
+  def anonymize_email_events
+    email_events.each do |event|
+      event.update!(email: Digest::MD5.base64digest(event.email))
+    end
   end
 end
