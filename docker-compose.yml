@@ -1,39 +1,63 @@
 services:
-  app:
+  docuseal:
+    build: .
+    container_name: docuseal
+    restart: always
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
-    image: docuseal/docuseal:latest
     ports:
-      - 3000:3000
-    volumes:
-      - ./docuseal:/data/docuseal
+      - "3000:3000"
     environment:
-      - FORCE_SSL=${HOST}
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/docuseal
+      - HOSTNAME=vota.ucmxlapublica.org
+      - PROTOCOL=https
+      - DATABASE_URL=postgresql://postgres:ucmxlapublica2026@db:5432/docuseal
+      - RAILS_ENV=production
+      - RAILS_SERVE_STATIC_FILES=true
+      - SECRET_KEY_BASE=PONERAQUI
+    volumes:
+      - ./data:/data/docuseal
+    networks:
+      - porlapublica
 
-  postgres:
+  db:
     image: postgres:18
-    volumes:
-      - './pg_data:/var/lib/postgresql/18/docker'
+    container_name: docuseal-db
+    restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: docuseal
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=PONERPASWWORD
+      - POSTGRES_DB=docuseal
+    volumes:
+      - ./pg_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres -d docuseal"]
+      interval: 10s
       timeout: 5s
       retries: 5
-
-  caddy:
-    image: caddy:latest
-    command: caddy reverse-proxy --from $HOST --to app:3000
-    ports:
-      - 80:80
-      - 443:443
-      - 443:443/udp
-    volumes:
-      - ./caddy:/data/caddy
+    # Crear la tabla del censo al arrancar si no existe
+    command: >
+      sh -c "docker-entrypoint.sh postgres & 
+      sleep 10; 
+      psql -U postgres -d docuseal -c 'CREATE TABLE IF NOT EXISTS votos_presenciales (email TEXT PRIMARY KEY, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);'; 
+      wait"
+    networks:
+      - porlapublica
+    #App del censo
+  censo:
+    build: ./censo-app
+    container_name: censo-ucm
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
-      - HOST=${HOST}
+      - DATABASE_URL=postgresql://postgres:ucmxlapublica2026@db:5432/docuseal
+    ports:
+      - "5001:5000"
+    networks:
+      - porlapublica
+
+networks:
+  porlapublica:
+    external: true
