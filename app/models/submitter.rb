@@ -70,16 +70,37 @@ class Submitter < ApplicationRecord
 
   after_destroy :anonymize_email_events, if: -> { Docuseal.multitenant? }
 
-  # Validación correo @ucm.es
+  # 1. Validación de dominio @ucm.es
   validates :email, format: { 
     with: /\A[\w+\-.]+@ucm\.es\z/i, 
     message: "solo se permiten correos institucionales de la Complutense (@ucm.es)" 
   }, if: -> { email.present? }
+
+  # 2. Validación de voto único online (no repetir en el mismo formulario)
   validates :email, uniqueness: { 
     scope: :submission_id, 
     case_sensitive: false, 
     message: "ya ha firmado este documento. No se permite duplicar el voto." 
   }, if: -> { email.present? }  
+
+  # 3. ESTA ES LA LÍNEA QUE TE FALTA: Llama al método de abajo para comprobar la mesa física
+  validate :no_haya_votado_en_mesa, if: -> { email.present? }
+
+
+  private
+
+  # Este es el método que hace la consulta a la tabla de la App del Censo
+  def no_haya_votado_en_mesa
+    res = ActiveRecord::Base.connection.execute(
+      ActiveRecord::Base.sanitize_sql_array([
+        "SELECT 1 FROM votos_presenciales WHERE email = ?", 
+        email.downcase.strip
+      ])
+    )
+    if res.any?
+      errors.add(:email, "ya ha ejercido su voto de forma presencial en una mesa.")
+    end
+  end
 
   def status
     if declined_at?
