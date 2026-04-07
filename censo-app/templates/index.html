@@ -1,39 +1,79 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Censo | UCMXLAPUBLICA</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #00bf63; }
+        .base-input:invalid { border-color: #ef4444; }
+    </style>
 </head>
-<body class="bg-[#00bf63] min-h-screen flex items-center justify-center p-4 font-sans text-gray-800">
+<body class="min-h-screen flex items-center justify-center p-4 font-sans text-gray-800">
     <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-white">
         <div class="p-8">
-            <h1 class="text-3xl font-black text-center mb-2 text-[#00bf63]">UCMXLAPUBLICA</h1>
-            <p class="text-center text-gray-400 font-bold text-xs uppercase mb-8">Consulta de Censo Electoral</p>
+            <!-- LOGO -->
+            <div class="flex justify-center mb-4">
+                <img src="https://vota.ucmxlapublica.org/logo.svg" alt="Logo UCM" class="h-20 w-auto">
+            </div>
+            
+            <h1 class="text-2xl font-black text-center mb-1 text-[#00bf63]">UCMXLAPUBLICA</h1>
+            <p class="text-center text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-8">Consulta de Censo Electoral</p>
+
+            <!-- FORMULARIO DE BÚSQUEDA -->
             <form method="POST" class="space-y-4">
-                <input type="email" name="email" placeholder="estudiante@ucm.es" required 
-                       class="w-full px-5 py-4 bg-gray-100 border-2 border-transparent rounded-2xl focus:border-[#00bf63] outline-none text-lg">
-                <button type="submit" class="w-full bg-[#00bf63] text-white font-black py-4 rounded-2xl shadow-lg text-lg uppercase">Verificar</button>
+                <div>
+                    <input type="email" 
+                           name="email" 
+                           placeholder="estudiante@ucm.es" 
+                           required 
+                           pattern=".*@ucm\.es$"
+                           oninvalid="this.setCustomValidity('Solo correos @ucm.es')"
+                           oninput="this.setCustomValidity('')"
+                           class="base-input w-full px-5 py-4 bg-gray-100 border-2 border-transparent rounded-2xl focus:border-[#00bf63] focus:bg-white outline-none transition-all text-lg text-center">
+                </div>
+                <button type="submit" class="w-full bg-[#00bf63] text-white font-black py-4 rounded-2xl shadow-lg hover:brightness-110 active:scale-95 transition-all text-lg uppercase">
+                    VERIFICAR
+                </button>
             </form>
+
             {% if email %}
-            <div class="mt-8 pt-8 border-t-4 border-dotted border-gray-100">
+            <div class="mt-8 pt-8 border-t-4 border-dotted border-gray-100 animate-in fade-in zoom-in duration-300">
+                
                 {% if status %}
-                    <div class="bg-red-600 rounded-2xl p-6 text-center text-white">
-                        <h3 class="font-black text-2xl uppercase text-white">YA HA VOTADO</h3>
-                        <p class="font-bold opacity-90 mt-1">{{ status }}</p>
+                    <!-- ESTADO: YA VOTÓ -->
+                    <div class="bg-red-600 rounded-2xl p-6 text-center text-white shadow-xl">
+                        <div class="text-3xl mb-2">⚠️</div>
+                        <h3 class="font-black text-2xl uppercase">YA HA VOTADO</h3>
+                        <p class="font-bold opacity-90 mt-1 text-sm">{{ status }}</p>
+                        <p class="mt-4 text-[11px] border-t border-red-400 pt-2 font-bold uppercase">No entregar papeleta a:<br>{{ email }}</p>
                     </div>
                 {% else %}
-                    <div class="bg-white border-4 border-[#00bf63] rounded-2xl p-6 text-center">
-                        <h3 class="text-[#00bf63] font-black text-2xl uppercase">PUEDE VOTAR</h3>
-                        <p class="text-gray-500 font-bold mt-1">No hay registros previos.</p>
+                    <!-- ESTADO: PUEDE VOTAR -->
+                    <div class="bg-white border-4 border-[#00bf63] rounded-2xl p-6 text-center shadow-lg">
+                        <h3 class="text-[#00bf63] font-black text-2xl uppercase italic">PUEDE VOTAR</h3>
+                        <p class="text-gray-500 font-bold text-sm mt-1">No hay registros previos.</p>
+                        
+                        <div class="mt-6 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                            <p class="text-[10px] text-gray-400 uppercase font-bold mb-1">Confirmación de registro</p>
+                            <p class="text-sm font-bold text-gray-700">Vas a registrar el voto de:</p>
+                            <p class="text-[#00bf63] font-black text-base break-all">{{ email }}</p>
+                        </div>
+
                         <form action="/register" method="POST" class="mt-6">
                             <input type="hidden" name="email" value="{{ email }}">
-                            <button type="submit" class="bg-black text-white text-sm font-black py-4 px-8 rounded-full uppercase">Marcar Voto en Mesa</button>
+                            <button type="submit" class="bg-black text-white text-xs font-black py-4 px-8 rounded-full hover:scale-105 transition-transform uppercase shadow-lg w-full">
+                                MARCAR VOTO EN MESA
+                            </button>
                         </form>
                     </div>
                 {% endif %}
             </div>
             {% endif %}
+        </div>
+        <div class="bg-gray-50 py-3 text-center border-t border-gray-100">
+            <p class="text-[9px] text-gray-300 font-bold uppercase tracking-widest px-4"> SEGUIR INSTRUCCIONES DE LA COORDINACIÓN</p>
         </div>
     </div>
 </body>
