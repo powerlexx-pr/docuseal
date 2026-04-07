@@ -8,6 +8,7 @@
     <style>
         body { background-color: #00bf63; }
         .base-input:invalid { border-color: #ef4444; }
+        .lowercase-input { text-transform: lowercase; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 font-sans text-gray-800">
@@ -30,8 +31,8 @@
                            required 
                            pattern=".*@ucm\.es$"
                            oninvalid="this.setCustomValidity('Solo correos @ucm.es')"
-                           oninput="this.setCustomValidity('')"
-                           class="base-input w-full px-5 py-4 bg-gray-100 border-2 border-transparent rounded-2xl focus:border-[#00bf63] focus:bg-white outline-none transition-all text-lg text-center">
+                           oninput="this.value = this.value.toLowerCase(); this.setCustomValidity('')"
+                           class="base-input lowercase-input w-full px-5 py-4 bg-gray-100 border-2 border-transparent rounded-2xl focus:border-[#00bf63] focus:bg-white outline-none transition-all text-lg text-center">
                 </div>
                 <button type="submit" class="w-full bg-[#00bf63] text-white font-black py-4 rounded-2xl shadow-lg hover:brightness-110 active:scale-95 transition-all text-lg uppercase">
                     VERIFICAR
@@ -58,7 +59,7 @@
                         <div class="mt-6 p-3 bg-gray-50 rounded-xl border border-gray-100">
                             <p class="text-[10px] text-gray-400 uppercase font-bold mb-1">Confirmación de registro</p>
                             <p class="text-sm font-bold text-gray-700">Vas a registrar el voto de:</p>
-                            <p class="text-[#00bf63] font-black text-base break-all">{{ email }}</p>
+                            <p class="text-[#00bf63] font-black text-base break-all lowercase">{{ email }}</p>
                         </div>
 
                         <form action="/register" method="POST" class="mt-6">
