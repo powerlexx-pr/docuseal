@@ -1,3 +1,6 @@
+#REVISAR PASWORDS, KEYS, DATABASE_URL Y NETWORK
+#LEVANTAR CON (SUDO) docker compose up -d --build
+
 services:
   docuseal:
     build: .
@@ -11,7 +14,7 @@ services:
     environment:
       - HOSTNAME=vota.ucmxlapublica.org
       - PROTOCOL=https
-      - DATABASE_URL=postgresql://postgres:ucmxlapublica2026@db:5432/docuseal
+      - DATABASE_URL=postgresql://postgres:EXAMPLE@db:5432/docuseal
       - RAILS_ENV=production
       - RAILS_SERVE_STATIC_FILES=true
       - SECRET_KEY_BASE=PONERAQUI
@@ -52,7 +55,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql://postgres:ucmxlapublica2026@db:5432/docuseal
+      - DATABASE_URL=postgresql://postgres:EXAMPLE@db:5432/docuseal
     ports:
       - "5001:5000"
     networks:
